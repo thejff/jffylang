@@ -20,7 +20,7 @@ This language is being made _Just For Fun_, it is released under the MIT Licence
 
 ## Documentation
 
-[Docs](./docs/TOC.md)
-[Design](./docs/DESIGN.md)
-[Todo](./docs/TODO.md)
+[Docs](./docs/TOC.md)<br/>
+[Design](./docs/DESIGN.md)<br/>
+[Todo](./docs/TODO.md)<br/>
 [Changelog](./docs/CHANGELOG.md)
