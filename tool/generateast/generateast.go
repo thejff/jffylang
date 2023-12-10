@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"path"
+	"strings"
 )
 
 type Types struct {
@@ -26,19 +27,19 @@ func main() {
 	t := []Types{
 		{
 			name:   "Binary",
-			fields: []string{"left Expr", "operator IToken", "right Expr"},
+			fields: []string{"Left IExpr", "Operator IToken", "Right IExpr"},
 		},
 		{
 			name:   "Grouping",
-			fields: []string{"expression Expr"},
+			fields: []string{"Expression IExpr"},
 		},
 		{
 			name:   "Literal",
-			fields: []string{"value any"},
+			fields: []string{"Value any"},
 		},
 		{
 			name:   "Unary",
-			fields: []string{"operator IToken", "right Expr"},
+			fields: []string{"Operator IToken", "Right IExpr"},
 		},
 	}
 
@@ -71,9 +72,15 @@ func defineAst(outDir string, fileName string, baseName string, types []Types) e
 	lw.writeLine("")
 	lw.writeLine(fmt.Sprintf("type %s struct {}", baseName))
 	lw.writeLine("")
+	lw.writeLine(fmt.Sprintf("type I%s interface {", baseName))
+	lw.writeLine(fmt.Sprintf("  accept(%sVisitor) any", baseName))
+	lw.writeLine("}")
+	lw.writeLine("")
+
+	defineVisitor(lw, baseName, types)
 
 	for _, t := range types {
-		defineStruct(lw, t.name, t.fields)
+		defineStruct(lw, t.name, t.fields, baseName)
 	}
 
 	lw.writeLine("")
@@ -91,12 +98,59 @@ func defineAst(outDir string, fileName string, baseName string, types []Types) e
 	return nil
 }
 
-func defineStruct(lw lineWriter, name string, fields []string) {
+func defineStruct(lw lineWriter, name string, fields []string, baseName string) {
 
 	lw.writeLine(fmt.Sprintf("type %s struct {", name))
 
 	for _, f := range fields {
-		lw.writeLine(f)
+		lw.writeLine(
+			fmt.Sprintf("  %s", f),
+		)
+	}
+
+	lw.writeLine("}")
+	lw.writeLine("")
+
+	defineBaseFunc(lw, name, baseName)
+}
+
+func defineBaseFunc(lw lineWriter, structName string, baseName string) {
+	firstChar := strings.ToLower(string(structName[0]))
+
+	lw.writeLine(
+		fmt.Sprintf(
+			"func (%s *%s) accept(v %sVisitor) any {",
+			firstChar,
+			structName,
+			baseName,
+		),
+	)
+
+	lw.writeLine(
+		fmt.Sprintf(
+			"  return v.visitFor%s%s(%s)",
+			structName,
+			baseName,
+			firstChar,
+		),
+	)
+
+	lw.writeLine("}")
+	lw.writeLine("")
+}
+
+func defineVisitor(lw lineWriter, baseName string, types []Types) {
+	lw.writeLine(fmt.Sprintf("type %sVisitor interface {", baseName))
+
+	for _, t := range types {
+		lw.writeLine(
+			fmt.Sprintf(
+				"  visitFor%s%s(*%s) any",
+				t.name,
+				baseName,
+				t.name,
+			),
+		)
 	}
 
 	lw.writeLine("}")
