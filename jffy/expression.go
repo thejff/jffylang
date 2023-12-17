@@ -1,51 +1,49 @@
 package jffy
 
-type Expr struct {}
+type Expr struct{}
 
 type IExpr interface {
-  accept(ExprVisitor) any
+	Accept(ExprVisitor) any
 }
 
 type ExprVisitor interface {
-  visitForBinaryExpr(*Binary) any
-  visitForGroupingExpr(*Grouping) any
-  visitForLiteralExpr(*Literal) any
-  visitForUnaryExpr(*Unary) any
+	VisitForBinaryExpr(*Binary) any
+	VisitForGroupingExpr(*Grouping) any
+	VisitForLiteralExpr(*Literal) any
+	VisitForUnaryExpr(*Unary) any
 }
 
 type Binary struct {
-  Left IExpr
-  Operator IToken
-  Right IExpr
+	Left     IExpr
+	Operator IToken
+	Right    IExpr
 }
 
-func (b *Binary) accept(v ExprVisitor) any {
-  return v.visitForBinaryExpr(b)
+func (b *Binary) Accept(v ExprVisitor) any {
+	return v.VisitForBinaryExpr(b)
 }
 
 type Grouping struct {
-  Expression IExpr
+	Expression IExpr
 }
 
-func (g *Grouping) accept(v ExprVisitor) any {
-  return v.visitForGroupingExpr(g)
+func (g *Grouping) Accept(v ExprVisitor) any {
+	return v.VisitForGroupingExpr(g)
 }
 
 type Literal struct {
-  Value any
+	Value any
 }
 
-func (l *Literal) accept(v ExprVisitor) any {
-  return v.visitForLiteralExpr(l)
+func (l *Literal) Accept(v ExprVisitor) any {
+	return v.VisitForLiteralExpr(l)
 }
 
 type Unary struct {
-  Operator IToken
-  Right IExpr
+	Operator IToken
+	Right    IExpr
 }
 
-func (u *Unary) accept(v ExprVisitor) any {
-  return v.visitForUnaryExpr(u)
+func (u *Unary) Accept(v ExprVisitor) any {
+	return v.VisitForUnaryExpr(u)
 }
-
-
