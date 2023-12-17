@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/thejff/jffylang/error"
+	"github.com/thejff/jffylang/jerror"
 )
 
 type IScanner interface {
@@ -175,7 +175,7 @@ func (s *scan) scanToken() {
 			s.identifier()
 
 		} else {
-			error.Error(s.line, fmt.Sprintf("Unexpected character: \"%s\"", c))
+			jerror.Error(s.line, fmt.Sprintf("Unexpected character: \"%s\"", c))
 		}
 	}
 
@@ -282,7 +282,7 @@ func (s *scan) string() {
 	}
 
 	if s.isAtEnd() {
-		error.Error(s.line, "Unterminated string.")
+		jerror.Error(s.line, "Unterminated string.")
 		return
 	}
 
