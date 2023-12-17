@@ -14,18 +14,18 @@ func NewAstPrinter() ExprVisitor {
 }
 
 func (a *AstPrinter) Print(expr IExpr) string {
-	return expr.accept(a).(string)
+	return expr.Accept(a).(string)
 }
 
-func (a *AstPrinter) visitForBinaryExpr(b *Binary) any {
+func (a *AstPrinter) VisitForBinaryExpr(b *Binary) any {
 	return a.parenthesize(b.Operator.Lexeme(), b.Left, b.Right)
 }
 
-func (a *AstPrinter) visitForGroupingExpr(g *Grouping) any {
+func (a *AstPrinter) VisitForGroupingExpr(g *Grouping) any {
 	return a.parenthesize("group", g.Expression)
 }
 
-func (a *AstPrinter) visitForLiteralExpr(l *Literal) any {
+func (a *AstPrinter) VisitForLiteralExpr(l *Literal) any {
 	if l.Value == nil {
 		return "nil"
 	}
@@ -33,7 +33,7 @@ func (a *AstPrinter) visitForLiteralExpr(l *Literal) any {
 	return fmt.Sprintf("%v", l.Value)
 }
 
-func (a *AstPrinter) visitForUnaryExpr(u *Unary) any {
+func (a *AstPrinter) VisitForUnaryExpr(u *Unary) any {
 	return a.parenthesize(u.Operator.Lexeme(), u.Right)
 }
 
@@ -47,7 +47,7 @@ func (a *AstPrinter) parenthesize(name string, exprs ...IExpr) string {
 	for _, e := range exprs {
 		s.WriteString(" ")
 
-		child := e.accept(a)
+		child := e.Accept(a)
 		s.WriteString(child.(string))
 	}
 
