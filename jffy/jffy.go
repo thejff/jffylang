@@ -5,12 +5,15 @@ import (
 	"fmt"
 	"log"
 	"os"
+
+	"github.com/thejff/jffylang/jerror"
 )
 
 type Jffy interface {
 	Help()
 	RunFile(file string) error
 	RunPrompt() error
+	Error(token IToken, message string)
 }
 
 type jffy struct {
@@ -76,15 +79,31 @@ func (j *jffy) RunPrompt() error {
 
 }
 
+func (j *jffy) Error(token IToken, msg string) {
+	if token.Type() == EOF {
+		jerror.Error(token.Line(), fmt.Sprintf("at end %s", msg))
+	} else {
+		jerror.Error(token.Line(), fmt.Sprintf("at \"%s\", %s", token.Lexeme(), msg))
+	}
+
+	j.hadError = true
+}
+
 func (j *jffy) run(source string) error {
 
 	scan := Scanner(source)
-
 	tokens := scan.ScanTokens()
 
-	for _, t := range tokens {
-		fmt.Printf("Token: %s\n", t.String())
+	parser := Parser(tokens, j)
+	expr := parser.Parse()
+
+	if j.hadError {
+		return nil
 	}
+
+	ast := NewAstPrinter()
+	val := ast.(*AstPrinter).Print(expr)
+	fmt.Println(val)
 
 	return nil
 }
