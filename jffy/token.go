@@ -5,6 +5,9 @@ import "fmt"
 type IToken interface {
 	String() string
 	Lexeme() string
+	Type() TokenType
+	Literal() any
+	Line() int
 }
 
 type tok struct {
@@ -32,4 +35,16 @@ func (t *tok) String() string {
 
 func (t *tok) Lexeme() string {
 	return t.lexeme
+}
+
+func (t *tok) Type() TokenType {
+	return t.tType
+}
+
+func (t *tok) Literal() any {
+	return t.literal
+}
+
+func (t *tok) Line() int {
+	return t.line
 }
