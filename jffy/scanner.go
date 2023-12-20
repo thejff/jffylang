@@ -293,7 +293,7 @@ func (s *scan) string() {
 	// Catch the closing "
 	s.advance()
 
-	value := s.source[s.start+1 : s.current]
+	value := s.source[s.start+1 : s.current-1]
 
 	s.addToken(STRING, value)
 }
