@@ -86,7 +86,7 @@ func (p *parser) comparison() IExpr {
 func (p *parser) term() IExpr {
 	expr := p.factor()
 
-	for p.match(MINUS, PLUS) {
+	for p.match(MINUS, PLUS, DOT_DOT) {
 		operator := p.previous()
 		right := p.factor()
 
@@ -186,7 +186,7 @@ func (p *parser) consume(tType TokenType, msg string) {
 func (p *parser) error(token IToken, msg string) {
 	p.jffy.Error(token, msg)
 
-	e := &parseError{
+	e := parseError{
 		operator: token,
 		msg:      msg,
 	}
