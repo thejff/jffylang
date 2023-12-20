@@ -19,6 +19,8 @@ type Jffy interface {
 }
 
 type jffy struct {
+	interp interpreter
+
 	hadError        bool
 	hadRuntimeError bool
 }
@@ -88,6 +90,8 @@ func (j *jffy) RunPrompt() error {
 }
 
 func (j *jffy) Error(token IToken, msg string) {
+	// TODO: Improve printing
+
 	if token.Type() == EOF {
 		jerror.Error(token.Line(), fmt.Sprintf("at end %s", msg))
 	} else {
@@ -98,7 +102,12 @@ func (j *jffy) Error(token IToken, msg string) {
 }
 
 func (j *jffy) RuntimeError(token IToken, msg string) {
-	jerror.RuntimeError(token.Line(), fmt.Sprintf("at \"%s\", %s", token.Lexeme(), msg))
+	if token != nil {
+		jerror.RuntimeError(token.Line(), fmt.Sprintf("at \"%s\", %s", token.Lexeme(), msg))
+	} else {
+		jerror.RuntimeError(0, msg)
+	}
+
 	j.hadRuntimeError = true
 }
 
@@ -113,6 +122,8 @@ func (j *jffy) run(source string) error {
 	if j.hadError {
 		return nil
 	}
+
+	j.interp.Interpret(expr)
 
 	ast := NewAstPrinter()
 	val := ast.(*AstPrinter).Print(expr)

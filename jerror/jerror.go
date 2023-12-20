@@ -18,5 +18,10 @@ func report(line int, where string, message string) {
 }
 
 func RuntimeError(line int, message string) {
-	fmt.Printf("Error: %s [line %d]\n", message, line)
+	if line > 0 {
+		fmt.Printf("Error: %s [line %d]\n", message, line)
+		return
+	}
+
+	fmt.Printf("Error: %s\n", message)
 }
