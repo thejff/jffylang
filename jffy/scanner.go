@@ -99,9 +99,6 @@ func (s *scan) scanToken() {
 	case ",":
 		s.addToken(COMMA, nil)
 
-	case ".":
-		s.addToken(DOT, nil)
-
 	case "-":
 		s.addToken(MINUS, nil)
 
@@ -113,6 +110,13 @@ func (s *scan) scanToken() {
 
 	case "*":
 		s.addToken(STAR, nil)
+
+	case ".":
+		t = DOT
+		if s.match(".") {
+			t = DOT_DOT
+		}
+		s.addToken(t, nil)
 
 	// Operators
 	case "!":

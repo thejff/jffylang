@@ -25,29 +25,30 @@ const (
 	GREATER_EQUAL TokenType = 16
 	LESS          TokenType = 17
 	LESS_EQUAL    TokenType = 18
+	DOT_DOT       TokenType = 19
 
 	// Literals
-	IDENTIFIER TokenType = 19
-	STRING     TokenType = 20
-	NUMBER     TokenType = 21
+	IDENTIFIER TokenType = 20
+	STRING     TokenType = 21
+	NUMBER     TokenType = 22
 
 	// Keywords
-	AND    TokenType = 22
-	CLASS  TokenType = 23
-	ELSE   TokenType = 24
-	FALSE  TokenType = 25
-	FUN    TokenType = 26
-	FOR    TokenType = 27
-	IF     TokenType = 28
-	NIL    TokenType = 29
-	OR     TokenType = 30
-	PRINT  TokenType = 31
-	RETURN TokenType = 32
-	SUPER  TokenType = 33
-	THIS   TokenType = 34
-	TRUE   TokenType = 35
-	VAR    TokenType = 36
-	WHILE  TokenType = 37
+	AND    TokenType = 23
+	CLASS  TokenType = 24
+	ELSE   TokenType = 25
+	FALSE  TokenType = 26
+	FUN    TokenType = 27
+	FOR    TokenType = 28
+	IF     TokenType = 29
+	NIL    TokenType = 30
+	OR     TokenType = 31
+	PRINT  TokenType = 32
+	RETURN TokenType = 33
+	SUPER  TokenType = 34
+	THIS   TokenType = 35
+	TRUE   TokenType = 36
+	VAR    TokenType = 37
+	WHILE  TokenType = 38
 
-	EOF TokenType = 38
+	EOF TokenType = 39
 )
