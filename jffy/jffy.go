@@ -13,16 +13,20 @@ type Jffy interface {
 	Help()
 	RunFile(file string) error
 	RunPrompt() error
+
 	Error(token IToken, message string)
+	RuntimeError(token IToken, message string)
 }
 
 type jffy struct {
-	hadError bool
+	hadError        bool
+	hadRuntimeError bool
 }
 
 func NewJffy() Jffy {
 	var j Jffy = &jffy{
-		hadError: false,
+		hadError:        false,
+		hadRuntimeError: false,
 	}
 
 	return j
@@ -46,6 +50,10 @@ func (j *jffy) RunFile(file string) error {
 
 	if j.hadError {
 		os.Exit(65)
+	}
+
+	if j.hadRuntimeError {
+		os.Exit(70)
 	}
 
 	return nil
@@ -87,6 +95,11 @@ func (j *jffy) Error(token IToken, msg string) {
 	}
 
 	j.hadError = true
+}
+
+func (j *jffy) RuntimeError(token IToken, msg string) {
+	jerror.RuntimeError(token.Line(), fmt.Sprintf("at \"%s\", %s", token.Lexeme(), msg))
+	j.hadRuntimeError = true
 }
 
 func (j *jffy) run(source string) error {
