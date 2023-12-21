@@ -16,15 +16,16 @@ type interpreter struct {
 	jffy Jffy
 }
 
-func Interpreter(jffy Jffy) ExprVisitor {
+/* func Interpreter(jffy Jffy) ExprVisitor {
 	var i ExprVisitor = &interpreter{
 		jffy,
 	}
 
 	return i
-}
+} */
 
-func (in *interpreter) Interpret(expr IExpr) {
+func (in *interpreter) Interpret(expr IExpr, jffy Jffy) {
+	in.jffy = jffy
 
 	// Catch panics
 	defer func() {
@@ -57,12 +58,8 @@ func (in *interpreter) VisitForBinaryExpr(b *Binary) any {
 	switch b.Operator.Type() {
 
 	case DOT_DOT:
-		// checkStringOperands will panic if these aren't strings
-		// TODO: attempt type checking and string assertion
-		// TODO: concatenate non strings
-		in.checkStringOperands(b.Operator, left, right)
-
-		return fmt.Sprintf("%s%s", left.(string), right.(string))
+		// concatenateOperands will panic if these aren't strings
+		return in.concatenateOperands(b.Operator, left, right)
 
 	case BANG_EQUAL:
 		return !isEqual(left, right)
@@ -74,7 +71,6 @@ func (in *interpreter) VisitForBinaryExpr(b *Binary) any {
 	// panics if one not a number
 	in.checkNumberOperands(b.Operator, left, right)
 
-	// Cleaner than handling an error in each case
 	// All below cases require the numbers to be floats
 	lVal, rVal, err := lrToFloat(left, right)
 	if err != nil {
@@ -197,18 +193,57 @@ func (in *interpreter) checkNumberOperands(operator IToken, left any, right any)
 	return false
 }
 
-func (in *interpreter) checkStringOperands(operator IToken, left any, right any) bool {
+func (in *interpreter) concatenateOperands(operator IToken, left any, right any) string {
+
+	isLeft, isRight := in.checkStringOperands(operator, left, right)
+
+	var rStr string
+	var lStr string
+
+	if isLeft && isRight {
+		rStr = right.(string)
+		lStr = left.(string)
+
+	}
+
+	if isLeft {
+		rStr = stringify(right)
+		lStr = left.(string)
+	}
+
+	if isRight {
+		lStr = stringify(left)
+		rStr = right.(string)
+	}
+
+	if !isLeft && !isRight {
+		in.handleError(operator, "One operand must be a string.")
+	}
+
+	return fmt.Sprintf("%s%s", lStr, rStr)
+
+}
+
+// Returns true if either operand can be asserted to a string
+func (in *interpreter) checkStringOperands(operator IToken, left any, right any) (bool, bool) {
 
 	_, isStringLeft := left.(string)
 	_, isStringRight := right.(string)
 
 	if isStringLeft && isStringRight {
-		return true
+		return true, true
 	}
 
-	fmt.Println("DEBUG")
-	in.handleError(operator, "Operands must be strings.")
-	return false
+	if isStringLeft {
+		return true, false
+	}
+
+	if isStringRight {
+		return false, true
+	}
+
+	// in.handleError(operator, "Operands must be strings.")
+	return false, false
 }
 
 func (in *interpreter) handleError(operator IToken, msg string) {
@@ -227,7 +262,7 @@ func stringify(obj any) string {
 	}
 
 	if _, isFloat := obj.(float64); isFloat {
-		text := fmt.Sprintf("%d", obj)
+		text := fmt.Sprintf("%f", obj)
 
 		if hasDecimals(text) {
 

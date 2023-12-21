@@ -123,11 +123,11 @@ func (j *jffy) run(source string) error {
 		return nil
 	}
 
-	j.interp.Interpret(expr)
+	j.interp.Interpret(expr, j)
 
-	ast := NewAstPrinter()
+	/* ast := NewAstPrinter()
 	val := ast.(*AstPrinter).Print(expr)
-	fmt.Println(val)
+	fmt.Println(val) */
 
 	return nil
 }
