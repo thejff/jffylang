@@ -33,6 +33,14 @@ func (a *AstPrinter) VisitForLiteralExpr(l *Literal) any {
 	return fmt.Sprintf("%v", l.Value)
 }
 
+func (a *AstPrinter) VisitForVariableExpr(v *Variable) any {
+	return nil
+}
+
+func (a *AstPrinter) VisitForAssignExpr(v *Assign) any {
+	return nil
+}
+
 func (a *AstPrinter) VisitForUnaryExpr(u *Unary) any {
 	return a.parenthesize(u.Operator.Lexeme(), u.Right)
 }

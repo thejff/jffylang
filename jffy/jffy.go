@@ -26,10 +26,16 @@ type jffy struct {
 }
 
 func NewJffy() Jffy {
-	var j Jffy = &jffy{
+
+	jff := jffy{
 		hadError:        false,
 		hadRuntimeError: false,
 	}
+
+	i := Interpreter(&jff)
+	jff.interp = i
+
+	var j Jffy = &jff
 
 	return j
 }
@@ -117,13 +123,13 @@ func (j *jffy) run(source string) error {
 	tokens := scan.ScanTokens()
 
 	parser := Parser(tokens, j)
-	expr := parser.Parse()
+	stmts := parser.Parse()
 
 	if j.hadError {
 		return nil
 	}
 
-	j.interp.Interpret(expr, j)
+	j.interp.Interpret(stmts, j)
 
 	/* ast := NewAstPrinter()
 	val := ast.(*AstPrinter).Print(expr)

@@ -14,6 +14,7 @@ type runtimeError struct {
 
 type interpreter struct {
 	jffy Jffy
+	env  Environment
 }
 
 /* func Interpreter(jffy Jffy) ExprVisitor {
@@ -24,7 +25,17 @@ type interpreter struct {
 	return i
 } */
 
-func (in *interpreter) Interpret(expr IExpr, jffy Jffy) {
+func Interpreter(jffy Jffy) interpreter {
+	env := GlobalEnv()
+
+	return interpreter{
+		jffy,
+		env,
+	}
+
+}
+
+func (in *interpreter) Interpret(stmts []IStmt, jffy Jffy) {
 	in.jffy = jffy
 
 	// Catch panics
@@ -32,6 +43,9 @@ func (in *interpreter) Interpret(expr IExpr, jffy Jffy) {
 		if r := recover(); r != nil {
 			resp, ok := r.(runtimeError)
 			if ok {
+				fmt.Printf("OP type: %s\n",
+					resp.msg,
+				)
 				in.jffy.RuntimeError(resp.operator, resp.msg)
 			} else {
 				err, ok := r.(error)
@@ -45,9 +59,13 @@ func (in *interpreter) Interpret(expr IExpr, jffy Jffy) {
 		}
 	}()
 
-	value := in.evaluate(expr)
+	for _, s := range stmts {
+		in.execute(s)
+	}
 
-	fmt.Printf("%s\n", stringify(value))
+	// value := in.evaluate(expr)
+
+	// fmt.Printf("%s\n", stringify(value))
 }
 
 func (in *interpreter) VisitForBinaryExpr(b *Binary) any {
@@ -145,6 +163,70 @@ func (in *interpreter) VisitForUnaryExpr(u *Unary) any {
 
 func (in *interpreter) evaluate(expr IExpr) any {
 	return expr.Accept(in)
+}
+
+func (in *interpreter) execute(stmt IStmt) {
+	stmt.Accept(in)
+}
+
+func (in *interpreter) executeBlock(statements []IStmt, env Environment) {
+	prev := in.env
+
+	// Make sure env is reset at the end, even if something panics
+	defer func() {
+		in.env = prev
+	}()
+
+	in.env = env
+
+	for _, s := range statements {
+		in.execute(s)
+	}
+
+}
+
+func (in *interpreter) VisitForBlockStmt(stmt *Block) any {
+	env := LocalEnv(in.env)
+	in.executeBlock(stmt.Statements, env)
+
+	return nil
+}
+
+func (in *interpreter) VisitForStmtExpressionStmt(stmt *StmtExpression) any {
+	in.evaluate(stmt.Expression)
+
+	return nil
+}
+
+func (in *interpreter) VisitForStmtPrintStmt(stmt *StmtPrint) any {
+	val := in.evaluate(stmt.Expression)
+	fmt.Println(stringify(val))
+
+	return nil
+}
+
+func (in *interpreter) VisitForVarStmt(stmt *Var) any {
+	var val any
+
+	if stmt.Initialiser != nil {
+		val = in.evaluate(stmt.Initialiser)
+	}
+
+	in.env.Define(stmt.Name.Lexeme(), val)
+
+	return nil
+}
+
+func (in *interpreter) VisitForAssignExpr(expr *Assign) any {
+
+	value := in.evaluate(expr.Value)
+	in.env.Assign(expr.Name, value)
+
+	return value
+}
+
+func (in *interpreter) VisitForVariableExpr(expr *Variable) any {
+	return in.env.Get(expr.Name)
 }
 
 func isTruthy(obj any) bool {
