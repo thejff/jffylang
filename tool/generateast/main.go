@@ -24,7 +24,17 @@ func main() {
 
 	outDir := args[0]
 
+	defineExpressions(outDir)
+	defineStatements(outDir)
+
+}
+
+func defineExpressions(outDir string) {
 	t := []Types{
+		{
+			name:   "Assign",
+			fields: []string{"Name IToken", "Value IExpr"},
+		},
 		{
 			name:   "Binary",
 			fields: []string{"Left IExpr", "Operator IToken", "Right IExpr"},
@@ -38,12 +48,43 @@ func main() {
 			fields: []string{"Value any"},
 		},
 		{
+			name:   "Variable",
+			fields: []string{"Name IToken"},
+		},
+		{
 			name:   "Unary",
 			fields: []string{"Operator IToken", "Right IExpr"},
 		},
 	}
 
 	if err := defineAst(outDir, "expression", "Expr", t); err != nil {
+		log.Println("Error writing expressions AST")
+		log.Fatalln(err)
+	}
+}
+
+func defineStatements(outDir string) {
+	t := []Types{
+		{
+			name:   "Block",
+			fields: []string{"Statements []IStmt"},
+		},
+		{
+			name:   "StmtExpression",
+			fields: []string{"Expression IExpr"},
+		},
+		{
+			name:   "Var",
+			fields: []string{"Name IToken", "Initialiser IExpr"},
+		},
+		{
+			name:   "StmtPrint",
+			fields: []string{"Expression IExpr"},
+		},
+	}
+
+	if err := defineAst(outDir, "statement", "Stmt", t); err != nil {
+		log.Println("Error writing statement AST")
 		log.Fatalln(err)
 	}
 }
@@ -73,7 +114,7 @@ func defineAst(outDir string, fileName string, baseName string, types []Types) e
 	lw.writeLine(fmt.Sprintf("type %s struct {}", baseName))
 	lw.writeLine("")
 	lw.writeLine(fmt.Sprintf("type I%s interface {", baseName))
-	lw.writeLine(fmt.Sprintf("  accept(%sVisitor) any", baseName))
+	lw.writeLine(fmt.Sprintf("  Accept(%sVisitor) any", baseName))
 	lw.writeLine("}")
 	lw.writeLine("")
 
@@ -119,7 +160,7 @@ func defineBaseFunc(lw lineWriter, structName string, baseName string) {
 
 	lw.writeLine(
 		fmt.Sprintf(
-			"func (%s *%s) accept(v %sVisitor) any {",
+			"func (%s *%s) Accept(param %sVisitor) any {",
 			firstChar,
 			structName,
 			baseName,
@@ -128,7 +169,7 @@ func defineBaseFunc(lw lineWriter, structName string, baseName string) {
 
 	lw.writeLine(
 		fmt.Sprintf(
-			"  return v.visitFor%s%s(%s)",
+			"  return param.VisitFor%s%s(%s)",
 			structName,
 			baseName,
 			firstChar,
@@ -145,7 +186,7 @@ func defineVisitor(lw lineWriter, baseName string, types []Types) {
 	for _, t := range types {
 		lw.writeLine(
 			fmt.Sprintf(
-				"  visitFor%s%s(*%s) any",
+				"  VisitFor%s%s(*%s) any",
 				t.name,
 				baseName,
 				t.name,
