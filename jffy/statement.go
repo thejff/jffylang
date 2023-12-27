@@ -9,6 +9,8 @@ type IStmt interface {
 type StmtVisitor interface {
   VisitForBlockStmt(*Block) any
   VisitForStmtExpressionStmt(*StmtExpression) any
+  VisitForIfStmt(*If) any
+  VisitForWhileStmt(*While) any
   VisitForVarStmt(*Var) any
   VisitForStmtPrintStmt(*StmtPrint) any
 }
@@ -27,6 +29,25 @@ type StmtExpression struct {
 
 func (s *StmtExpression) Accept(param StmtVisitor) any {
   return param.VisitForStmtExpressionStmt(s)
+}
+
+type If struct {
+  condition IExpr
+  thenBranch IStmt
+  elseBranch IStmt
+}
+
+func (i *If) Accept(param StmtVisitor) any {
+  return param.VisitForIfStmt(i)
+}
+
+type While struct {
+  condition IExpr
+  body IStmt
+}
+
+func (w *While) Accept(param StmtVisitor) any {
+  return param.VisitForWhileStmt(w)
 }
 
 type Var struct {

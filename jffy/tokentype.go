@@ -33,22 +33,24 @@ const (
 	NUMBER     TokenType = 22
 
 	// Keywords
-	AND    TokenType = 23
-	CLASS  TokenType = 24
-	ELSE   TokenType = 25
-	FALSE  TokenType = 26
-	FUN    TokenType = 27
-	FOR    TokenType = 28
-	IF     TokenType = 29
-	NIL    TokenType = 30
-	OR     TokenType = 31
-	PRINT  TokenType = 32
-	RETURN TokenType = 33
-	SUPER  TokenType = 34
-	THIS   TokenType = 35
-	TRUE   TokenType = 36
-	VAR    TokenType = 37
-	WHILE  TokenType = 38
+	AND      TokenType = 23
+	CLASS    TokenType = 24
+	ELSE     TokenType = 25
+	FALSE    TokenType = 26
+	FUN      TokenType = 27
+	FOR      TokenType = 28
+	IF       TokenType = 29
+	NIL      TokenType = 30
+	OR       TokenType = 31
+	PRINT    TokenType = 32
+	RETURN   TokenType = 33
+	SUPER    TokenType = 34
+	THIS     TokenType = 35
+	TRUE     TokenType = 36
+	VAR      TokenType = 37
+	WHILE    TokenType = 38
+	BREAK    TokenType = 39
+	CONTINUE TokenType = 40
 
-	EOF TokenType = 39
+	EOF TokenType = 41
 )

@@ -70,8 +70,20 @@ func (p *parser) declaration() IStmt {
 }
 
 func (p *parser) statement() IStmt {
+	if p.match(IF) {
+		return p.ifStatement()
+	}
+
+	if p.match(FOR) {
+		return p.forStatement()
+	}
+
 	if p.match(PRINT) {
 		return p.printStatement()
+	}
+
+	if p.match(WHILE) {
+		return p.whileStatement()
 	}
 
 	if p.match(LEFT_BRACE) {
@@ -81,6 +93,99 @@ func (p *parser) statement() IStmt {
 	}
 
 	return p.expressionStatement()
+}
+
+func (p *parser) forStatement() IStmt {
+
+	var initialiser IStmt
+	if p.match(SEMICOLON) {
+		initialiser = nil
+	} else if p.match(VAR) {
+		initialiser = p.varDeclaration()
+	} else {
+		initialiser = p.expressionStatement()
+	}
+
+	var condition IExpr = nil
+	if !p.check(SEMICOLON) {
+		condition = p.expression()
+	}
+	p.consume(SEMICOLON, "Expect \";\" after loop condition.")
+
+	var increment IExpr = nil
+	if !p.check(LEFT_BRACE) {
+		increment = p.expression()
+	}
+
+	next := p.peek()
+	if next.Type() != LEFT_BRACE {
+		p.error(next, "Expect block after condition")
+	}
+
+	body := p.statement()
+
+	if increment != nil {
+		incExpr := &StmtExpression{
+			Expression: increment,
+		}
+
+		statements := []IStmt{
+			body,
+			incExpr,
+		}
+
+		body = &Block{
+			Statements: statements,
+		}
+	}
+
+	if condition == nil {
+		condition = &Literal{
+			true,
+		}
+	}
+
+	body = &While{
+		condition,
+		body,
+	}
+
+	if initialiser != nil {
+		statements := []IStmt{
+			initialiser,
+			body,
+		}
+
+		body = &Block{
+			Statements: statements,
+		}
+	}
+
+	return body
+}
+
+func (p *parser) ifStatement() IStmt {
+	// Doing statements my way, go like, no () around the condition
+
+	condition := p.expression()
+
+	next := p.peek()
+	if next.Type() != LEFT_BRACE {
+		p.error(next, "Expect block after if condition.")
+	}
+
+	thenBranch := p.statement()
+	var elseBranch IStmt = nil
+
+	if p.match(ELSE) {
+		elseBranch = p.statement()
+	}
+
+	return &If{
+		condition,
+		thenBranch,
+		elseBranch,
+	}
 }
 
 func (p *parser) printStatement() IStmt {
@@ -108,6 +213,21 @@ func (p *parser) varDeclaration() IStmt {
 	}
 }
 
+func (p *parser) whileStatement() IStmt {
+	condition := p.expression()
+
+	next := p.peek()
+	if next.Type() != LEFT_BRACE {
+		p.error(next, "Expect block after condition")
+	}
+
+	body := p.statement()
+	return &While{
+		condition,
+		body,
+	}
+}
+
 func (p *parser) expressionStatement() IStmt {
 	expr := p.expression()
 	p.consume(SEMICOLON, "Expect \";\" after expression.")
@@ -131,7 +251,7 @@ func (p *parser) block() []IStmt {
 
 func (p *parser) assignment() IExpr {
 
-	expr := p.equality()
+	expr := p.or()
 
 	if p.match(EQUAL) {
 		equals := p.previous()
@@ -151,6 +271,38 @@ func (p *parser) assignment() IExpr {
 
 	return expr
 
+}
+
+func (p *parser) or() IExpr {
+	expr := p.and()
+
+	for p.match(OR) {
+		op := p.previous()
+		right := p.and()
+		expr = &Logical{
+			expr,
+			op,
+			right,
+		}
+	}
+
+	return expr
+}
+
+func (p *parser) and() IExpr {
+	expr := p.equality()
+
+	for p.match(AND) {
+		op := p.previous()
+		right := p.equality()
+		expr = &Logical{
+			expr,
+			op,
+			right,
+		}
+	}
+
+	return expr
 }
 
 func (p *parser) equality() IExpr {

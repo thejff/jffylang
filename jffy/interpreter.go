@@ -136,6 +136,22 @@ func (in *interpreter) VisitForLiteralExpr(l *Literal) any {
 	return l.Value
 }
 
+func (in *interpreter) VisitForLogicalExpr(l *Logical) any {
+	left := in.evaluate(l.Left)
+
+	if l.Operator.Type() == OR {
+		if isTruthy(left) {
+			return left
+		}
+	} else {
+		if !isTruthy(left) {
+			return left
+		}
+	}
+
+	return in.evaluate(l.Right)
+}
+
 func (in *interpreter) VisitForUnaryExpr(u *Unary) any {
 	right := in.evaluate(u.Right)
 
@@ -198,6 +214,16 @@ func (in *interpreter) VisitForStmtExpressionStmt(stmt *StmtExpression) any {
 	return nil
 }
 
+func (in *interpreter) VisitForIfStmt(stmt *If) any {
+	if isTruthy(in.evaluate(stmt.condition)) {
+		in.execute(stmt.thenBranch)
+	} else if stmt.elseBranch != nil {
+		in.execute(stmt.elseBranch)
+	}
+
+	return nil
+}
+
 func (in *interpreter) VisitForStmtPrintStmt(stmt *StmtPrint) any {
 	val := in.evaluate(stmt.Expression)
 	fmt.Println(stringify(val))
@@ -213,6 +239,14 @@ func (in *interpreter) VisitForVarStmt(stmt *Var) any {
 	}
 
 	in.env.Define(stmt.Name.Lexeme(), val)
+
+	return nil
+}
+
+func (in *interpreter) VisitForWhileStmt(stmt *While) any {
+	for isTruthy(in.evaluate(stmt.condition)) {
+		in.execute(stmt.body)
+	}
 
 	return nil
 }

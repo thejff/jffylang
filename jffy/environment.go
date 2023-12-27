@@ -33,7 +33,14 @@ func (e *Environment) Get(name IToken) any {
 
 	// Found it, send it back
 	if ok {
-		return val
+		if val != nil {
+			return val
+		}
+
+		panic(runtimeError{
+			operator: name,
+			msg:      fmt.Sprintf("Variable declared but not assigned before use \"%s\".", name.Lexeme()),
+		})
 	}
 
 	// Maybe our parent has it?
@@ -46,7 +53,6 @@ func (e *Environment) Get(name IToken) any {
 		operator: name,
 		msg:      fmt.Sprintf("Undefined variable \"%s\".", name.Lexeme()),
 	})
-
 }
 
 func (e *Environment) Assign(name IToken, value any) {
