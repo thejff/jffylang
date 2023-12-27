@@ -48,6 +48,10 @@ func defineExpressions(outDir string) {
 			fields: []string{"Value any"},
 		},
 		{
+			name:   "Logical",
+			fields: []string{"Left IExpr", "Operator IToken", "Right IExpr"},
+		},
+		{
 			name:   "Variable",
 			fields: []string{"Name IToken"},
 		},
@@ -72,6 +76,14 @@ func defineStatements(outDir string) {
 		{
 			name:   "StmtExpression",
 			fields: []string{"Expression IExpr"},
+		},
+		{
+			name:   "If",
+			fields: []string{"condition IExpr", "thenBranch IStmt", "elseBranch IStmt"},
+		},
+		{
+			name:   "While",
+			fields: []string{"condition IExpr", "body IStmt"},
 		},
 		{
 			name:   "Var",
