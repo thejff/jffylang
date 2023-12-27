@@ -25,7 +25,9 @@
 |Grammar    |Definition                                                                                     |
 |-------    |----------                                                                                     |
 |expression | -> assignment                                                                                 |
-|assignment | -> IDENTIFIER "=" assignment  &#124; equality                                                 |
+|assignment | -> IDENTIFIER "=" assignment  &#124; logic_or ;                                                |
+|logic_or   | -> logic_and ( "or" logic_and )* ; |
+|logic_and  | -> equality ( "and" equality )* ; |
 |equality   | -> comparison ( ( "!=" &#124; "==" ) comparison )*                                            |
 |comparison | -> term ( ( ">" &#124; ">=" &#124; "<" &#124; "<=") term )*                                   |
 |term       | -> factor ( ( "-" &#124; "+" ) factor )*                                                      |
@@ -40,7 +42,11 @@
 |-------    |----------                                                                                                         |
 |program    | -> declaration* EOF                                                                                               |
 |declaration| -> varDecl &#124; statement                                                                                       |
-|statement  | -> exprStmt &#124; printStmt  &#124; block ;                                                                                      |
+|statement  | -> exprStmt &#124; forStmt &#124; ifStmt &#124; printStmt &#124; whileStmt &#124; block ;                                                                                      |
+|whileStmt  | -> "while" expression block ; |
+|forStmt    | -> "for" ( varDecl &#124; exprStmt &#124; ";" ) expression? ";" expression? block ; |
+|ifStmt     | -> "if" expression block "else" block ? ;
+|printStmt  | -> "print" ( STRING &#124; NUMBER ) ";"
 |block      | -> "{" declaration* "}" ;  
 |varDecl    | -> "var" IDENTIFIER ( "=" expression )? ";" ;                                                                     |
 |primary    | -> "true" &#124; "false" &#124; "nil" &#124; NUMBER &#124; STRING &#124; "(" expression ")" &#124; IDENTIFIER ;   |
