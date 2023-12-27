@@ -86,6 +86,14 @@ func defineStatements(outDir string) {
 			fields: []string{"condition IExpr", "body IStmt"},
 		},
 		{
+			name:   "Break",
+			fields: []string{},
+		},
+		{
+			name:   "Continue",
+			fields: []string{},
+		},
+		{
 			name:   "Var",
 			fields: []string{"Name IToken", "Initialiser IExpr"},
 		},

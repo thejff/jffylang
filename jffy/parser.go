@@ -18,6 +18,8 @@ type parser struct {
 
 	tokens  []IToken
 	current int
+
+	inLoop bool
 }
 
 func Parser(tokens []IToken, jffy Jffy) IParser {
@@ -25,6 +27,7 @@ func Parser(tokens []IToken, jffy Jffy) IParser {
 		jffy,
 		tokens,
 		0,
+		false,
 	}
 
 	return p
@@ -75,7 +78,10 @@ func (p *parser) statement() IStmt {
 	}
 
 	if p.match(FOR) {
-		return p.forStatement()
+		p.inLoop = true
+		s := p.forStatement()
+		p.inLoop = false
+		return s
 	}
 
 	if p.match(PRINT) {
@@ -83,7 +89,18 @@ func (p *parser) statement() IStmt {
 	}
 
 	if p.match(WHILE) {
-		return p.whileStatement()
+		p.inLoop = true
+		s := p.whileStatement()
+		p.inLoop = false
+		return s
+	}
+
+	if p.match(BREAK) {
+		return p.breakStatement()
+	}
+
+	if p.match(CONTINUE) {
+		return p.continueStatement()
 	}
 
 	if p.match(LEFT_BRACE) {
@@ -222,10 +239,31 @@ func (p *parser) whileStatement() IStmt {
 	}
 
 	body := p.statement()
+
 	return &While{
 		condition,
 		body,
 	}
+}
+
+func (p *parser) breakStatement() IStmt {
+	if !p.inLoop {
+		p.error(p.tokens[p.current], "Expect \"break\" inside loop.")
+	}
+
+	p.consume(SEMICOLON, "Expect \";\" after break.")
+
+	return &Break{}
+}
+
+func (p *parser) continueStatement() IStmt {
+	if !p.inLoop {
+		p.error(p.tokens[p.current], "Expect \"continue\" inside loop.")
+	}
+
+	p.consume(SEMICOLON, "Expect \";\" after continue.")
+
+	return &Continue{}
 }
 
 func (p *parser) expressionStatement() IStmt {
@@ -525,6 +563,8 @@ func (p *parser) synchronise() {
 		case RETURN:
 		case VAR:
 		case WHILE:
+		case BREAK:
+		case CONTINUE:
 			fmt.Println("DEBUG")
 			return
 

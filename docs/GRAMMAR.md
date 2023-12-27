@@ -42,7 +42,7 @@
 |-------    |----------                                                                                                         |
 |program    | -> declaration* EOF                                                                                               |
 |declaration| -> varDecl &#124; statement                                                                                       |
-|statement  | -> exprStmt &#124; forStmt &#124; ifStmt &#124; printStmt &#124; whileStmt &#124; block ;                                                                                      |
+|statement  | -> exprStmt &#124; forStmt &#124; ifStmt &#124; printStmt &#124; whileStmt &#124; "break;" &#124; "continue;" &#124; block ;|
 |whileStmt  | -> "while" expression block ; |
 |forStmt    | -> "for" ( varDecl &#124; exprStmt &#124; ";" ) expression? ";" expression? block ; |
 |ifStmt     | -> "if" expression block "else" block ? ;

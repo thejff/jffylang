@@ -11,6 +11,8 @@ type StmtVisitor interface {
   VisitForStmtExpressionStmt(*StmtExpression) any
   VisitForIfStmt(*If) any
   VisitForWhileStmt(*While) any
+  VisitForBreakStmt(*Break) any
+  VisitForContinueStmt(*Continue) any
   VisitForVarStmt(*Var) any
   VisitForStmtPrintStmt(*StmtPrint) any
 }
@@ -48,6 +50,20 @@ type While struct {
 
 func (w *While) Accept(param StmtVisitor) any {
   return param.VisitForWhileStmt(w)
+}
+
+type Break struct {
+}
+
+func (b *Break) Accept(param StmtVisitor) any {
+  return param.VisitForBreakStmt(b)
+}
+
+type Continue struct {
+}
+
+func (c *Continue) Accept(param StmtVisitor) any {
+  return param.VisitForContinueStmt(c)
 }
 
 type Var struct {

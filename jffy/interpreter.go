@@ -7,14 +7,20 @@ import (
 	"strings"
 )
 
+type LoopControl struct {
+	doBreak    bool
+	doContinue bool
+}
+
 type runtimeError struct {
 	operator IToken
 	msg      string
 }
 
 type interpreter struct {
-	jffy Jffy
-	env  Environment
+	jffy     Jffy
+	env      Environment
+	loopCtrl LoopControl
 }
 
 /* func Interpreter(jffy Jffy) ExprVisitor {
@@ -28,9 +34,15 @@ type interpreter struct {
 func Interpreter(jffy Jffy) interpreter {
 	env := GlobalEnv()
 
+	l := LoopControl{
+		false,
+		false,
+	}
+
 	return interpreter{
 		jffy,
 		env,
+		l,
 	}
 
 }
@@ -182,7 +194,11 @@ func (in *interpreter) evaluate(expr IExpr) any {
 }
 
 func (in *interpreter) execute(stmt IStmt) {
-	stmt.Accept(in)
+	if !in.loopCtrl.doContinue {
+		stmt.Accept(in)
+	} else {
+		in.loopCtrl.doContinue = false
+	}
 }
 
 func (in *interpreter) executeBlock(statements []IStmt, env Environment) {
@@ -245,9 +261,25 @@ func (in *interpreter) VisitForVarStmt(stmt *Var) any {
 
 func (in *interpreter) VisitForWhileStmt(stmt *While) any {
 	for isTruthy(in.evaluate(stmt.condition)) {
+		if in.loopCtrl.doBreak {
+			in.loopCtrl.doBreak = false
+			return nil
+		}
+
 		in.execute(stmt.body)
+
 	}
 
+	return nil
+}
+
+func (in *interpreter) VisitForBreakStmt(stmt *Break) any {
+	in.loopCtrl.doBreak = true
+	return nil
+}
+
+func (in *interpreter) VisitForContinueStmt(stmt *Continue) any {
+	in.loopCtrl.doContinue = true
 	return nil
 }
 
