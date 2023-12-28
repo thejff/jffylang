@@ -77,6 +77,32 @@ for var i = 0; i < 10; i = i + 1 {
 }
 ```
 
+### Functions
+```go
+fun add(a, b) {
+    return a + b;
+}
+
+print add(1, 2); // 3
+```
+
+#### Anonymous Functions
+```go
+fun add(a, b, fn) {
+    fn(a + b);
+}
+
+add(2, 5, fun (total) {
+    print total;
+}); // 7
+
+var a = fun (total) {
+    print total * 10;
+}
+
+add(2, 3, a); // 50
+```
+
 ## Documentation
 
 [Docs](./docs/TOC.md)<br/>

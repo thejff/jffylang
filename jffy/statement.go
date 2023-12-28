@@ -8,13 +8,15 @@ type IStmt interface {
 
 type StmtVisitor interface {
   VisitForBlockStmt(*Block) any
-  VisitForStmtExpressionStmt(*StmtExpression) any
+  VisitForExpressionStmt(*Expression) any
+  VisitForFunctionStmt(*Function) any
   VisitForIfStmt(*If) any
   VisitForWhileStmt(*While) any
   VisitForBreakStmt(*Break) any
   VisitForContinueStmt(*Continue) any
+  VisitForPrintStmt(*Print) any
+  VisitForReturnStmt(*Return) any
   VisitForVarStmt(*Var) any
-  VisitForStmtPrintStmt(*StmtPrint) any
 }
 
 type Block struct {
@@ -25,12 +27,22 @@ func (b *Block) Accept(param StmtVisitor) any {
   return param.VisitForBlockStmt(b)
 }
 
-type StmtExpression struct {
+type Expression struct {
   Expression IExpr
 }
 
-func (s *StmtExpression) Accept(param StmtVisitor) any {
-  return param.VisitForStmtExpressionStmt(s)
+func (e *Expression) Accept(param StmtVisitor) any {
+  return param.VisitForExpressionStmt(e)
+}
+
+type Function struct {
+  Name IToken
+  Params []IToken
+  Body []IStmt
+}
+
+func (f *Function) Accept(param StmtVisitor) any {
+  return param.VisitForFunctionStmt(f)
 }
 
 type If struct {
@@ -66,6 +78,23 @@ func (c *Continue) Accept(param StmtVisitor) any {
   return param.VisitForContinueStmt(c)
 }
 
+type Print struct {
+  Expression IExpr
+}
+
+func (p *Print) Accept(param StmtVisitor) any {
+  return param.VisitForPrintStmt(p)
+}
+
+type Return struct {
+  Keyword IToken
+  Value IExpr
+}
+
+func (r *Return) Accept(param StmtVisitor) any {
+  return param.VisitForReturnStmt(r)
+}
+
 type Var struct {
   Name IToken
   Initialiser IExpr
@@ -73,14 +102,6 @@ type Var struct {
 
 func (v *Var) Accept(param StmtVisitor) any {
   return param.VisitForVarStmt(v)
-}
-
-type StmtPrint struct {
-  Expression IExpr
-}
-
-func (s *StmtPrint) Accept(param StmtVisitor) any {
-  return param.VisitForStmtPrintStmt(s)
 }
 
 

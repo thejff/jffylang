@@ -20,6 +20,8 @@ type parser struct {
 	current int
 
 	inLoop bool
+
+	anonFuncCount int
 }
 
 func Parser(tokens []IToken, jffy Jffy) IParser {
@@ -28,6 +30,7 @@ func Parser(tokens []IToken, jffy Jffy) IParser {
 		tokens,
 		0,
 		false,
+		0,
 	}
 
 	return p
@@ -60,10 +63,13 @@ func (p *parser) declaration() IStmt {
 	// Catch panics for syncronisation
 	defer func() {
 		if r := recover(); r != nil {
-			// resp := r.(parseError)
 			p.synchronise()
 		}
 	}()
+
+	if p.match(FUN) {
+		return p.function("function")
+	}
 
 	if p.match(VAR) {
 		return p.varDeclaration()
@@ -86,6 +92,10 @@ func (p *parser) statement() IStmt {
 
 	if p.match(PRINT) {
 		return p.printStatement()
+	}
+
+	if p.match(RETURN) {
+		return p.returnStatement()
 	}
 
 	if p.match(WHILE) {
@@ -142,7 +152,7 @@ func (p *parser) forStatement() IStmt {
 	body := p.statement()
 
 	if increment != nil {
-		incExpr := &StmtExpression{
+		incExpr := &Expression{
 			Expression: increment,
 		}
 
@@ -209,7 +219,23 @@ func (p *parser) printStatement() IStmt {
 	val := p.expression()
 	p.consume(SEMICOLON, "Expect \";\" after value.")
 
-	return &StmtPrint{
+	return &Print{
+		val,
+	}
+}
+
+func (p *parser) returnStatement() IStmt {
+	keyword := p.previous()
+
+	var val IExpr = nil
+
+	if !p.check(SEMICOLON) {
+		val = p.expression()
+	}
+
+	p.consume(SEMICOLON, "Expect \";\" after return value.")
+	return &Return{
+		keyword,
 		val,
 	}
 }
@@ -270,9 +296,45 @@ func (p *parser) expressionStatement() IStmt {
 	expr := p.expression()
 	p.consume(SEMICOLON, "Expect \";\" after expression.")
 
-	return &StmtExpression{
+	return &Expression{
 		expr,
 	}
+}
+
+func (p *parser) function(kind string) IStmt {
+
+	name := p.consume(IDENTIFIER, fmt.Sprintf("Expect %s name.", kind))
+
+	p.consume(LEFT_PAREN, fmt.Sprintf("Expect \"(\" after %s name.", kind))
+
+	params := []IToken{}
+
+	// If there are any parameters
+	if !p.check(RIGHT_PAREN) {
+		// Always do once, then loop (mimic do while)
+		params = append(params, p.consume(IDENTIFIER, "Expect parameter name."))
+
+		for p.match(COMMA) {
+			if len(params) >= 255 {
+				p.calmError(p.peek(), "Can't have more than 255 parameters")
+			}
+
+			params = append(params, p.consume(IDENTIFIER, "Expect parameter name."))
+		}
+	}
+
+	p.consume(RIGHT_PAREN, "Expect \")\" after parameters.")
+
+	p.consume(LEFT_BRACE, fmt.Sprintf("Expect \" {\" before %s body.", kind))
+
+	body := p.block()
+
+	return &Function{
+		name,
+		params,
+		body,
+	}
+
 }
 
 func (p *parser) block() []IStmt {
@@ -289,7 +351,7 @@ func (p *parser) block() []IStmt {
 
 func (p *parser) assignment() IExpr {
 
-	expr := p.or()
+	expr := p.lambda()
 
 	if p.match(EQUAL) {
 		equals := p.previous()
@@ -304,11 +366,46 @@ func (p *parser) assignment() IExpr {
 		}
 
 		p.calmError(equals, "Invalid assignment target.")
-		fmt.Println(equals)
 	}
 
 	return expr
 
+}
+
+func (p *parser) finishLambda() IExpr {
+	params := []IToken{}
+
+	if !p.check(RIGHT_PAREN) {
+		params = append(params, p.consume(IDENTIFIER, "Expect parameter name."))
+
+		for p.match(COMMA) {
+			if len(params) >= 255 {
+				p.calmError(p.peek(), "Can't have more than 255 parameters.")
+			}
+
+			params = append(params, p.consume(IDENTIFIER, "Expect parameter name."))
+		}
+	}
+
+	paren := p.consume(RIGHT_PAREN, "Expect \")\" after arguments.")
+
+	p.consume(LEFT_BRACE, "Expect \"{\" before anonymous body.")
+	body := p.block()
+
+	return &Lambda{
+		paren,
+		params,
+		body,
+	}
+}
+
+func (p *parser) lambda() IExpr {
+	if p.match(FUN) {
+		p.consume(LEFT_PAREN, "Expect \"(\" after anonymous function.")
+		return p.finishLambda()
+	}
+
+	return p.or()
 }
 
 func (p *parser) or() IExpr {
@@ -424,7 +521,45 @@ func (p *parser) unary() IExpr {
 		}
 	}
 
-	return p.primary()
+	return p.call()
+}
+
+func (p *parser) finishCall(callee IExpr) IExpr {
+
+	args := []IExpr{}
+
+	if !p.check(RIGHT_PAREN) {
+		args = append(args, p.expression())
+
+		for p.match(COMMA) {
+			if len(args) >= 255 {
+				p.calmError(p.peek(), "Can't have more than 255 arguments.")
+			}
+			args = append(args, p.expression())
+		}
+	}
+
+	paren := p.consume(RIGHT_PAREN, "Expect \")\" after arguments.")
+
+	return &Call{
+		callee,
+		paren,
+		args,
+	}
+}
+
+func (p *parser) call() IExpr {
+	expr := p.primary()
+
+	for {
+		if p.match(LEFT_PAREN) {
+			expr = p.finishCall(expr)
+		} else {
+			break
+		}
+	}
+
+	return expr
 }
 
 func (p *parser) primary() IExpr {

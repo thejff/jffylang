@@ -40,6 +40,14 @@ func defineExpressions(outDir string) {
 			fields: []string{"Left IExpr", "Operator IToken", "Right IExpr"},
 		},
 		{
+			name:   "Call",
+			fields: []string{"Callee IExpr", "Paren IToken", "Arguments []IExpr"},
+		},
+		{
+			name:   "Lambda",
+			fields: []string{"Paren IToken", "Params []IToken", "Body []IStmt"},
+		},
+		{
 			name:   "Grouping",
 			fields: []string{"Expression IExpr"},
 		},
@@ -74,8 +82,12 @@ func defineStatements(outDir string) {
 			fields: []string{"Statements []IStmt"},
 		},
 		{
-			name:   "StmtExpression",
+			name:   "Expression",
 			fields: []string{"Expression IExpr"},
+		},
+		{
+			name:   "Function",
+			fields: []string{"Name IToken", "Params []IToken", "Body []IStmt"},
 		},
 		{
 			name:   "If",
@@ -94,12 +106,16 @@ func defineStatements(outDir string) {
 			fields: []string{},
 		},
 		{
-			name:   "Var",
-			fields: []string{"Name IToken", "Initialiser IExpr"},
+			name:   "Print",
+			fields: []string{"Expression IExpr"},
 		},
 		{
-			name:   "StmtPrint",
-			fields: []string{"Expression IExpr"},
+			name:   "Return",
+			fields: []string{"Keyword IToken", "Value IExpr"},
+		},
+		{
+			name:   "Var",
+			fields: []string{"Name IToken", "Initialiser IExpr"},
 		},
 	}
 

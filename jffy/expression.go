@@ -9,6 +9,8 @@ type IExpr interface {
 type ExprVisitor interface {
   VisitForAssignExpr(*Assign) any
   VisitForBinaryExpr(*Binary) any
+  VisitForCallExpr(*Call) any
+  VisitForLambdaExpr(*Lambda) any
   VisitForGroupingExpr(*Grouping) any
   VisitForLiteralExpr(*Literal) any
   VisitForLogicalExpr(*Logical) any
@@ -33,6 +35,26 @@ type Binary struct {
 
 func (b *Binary) Accept(param ExprVisitor) any {
   return param.VisitForBinaryExpr(b)
+}
+
+type Call struct {
+  Callee IExpr
+  Paren IToken
+  Arguments []IExpr
+}
+
+func (c *Call) Accept(param ExprVisitor) any {
+  return param.VisitForCallExpr(c)
+}
+
+type Lambda struct {
+  Paren IToken
+  Params []IToken
+  Body []IStmt
+}
+
+func (l *Lambda) Accept(param ExprVisitor) any {
+  return param.VisitForLambdaExpr(l)
 }
 
 type Grouping struct {

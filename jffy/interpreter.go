@@ -20,19 +20,14 @@ type runtimeError struct {
 type interpreter struct {
 	jffy     Jffy
 	env      Environment
+	globals  Environment
 	loopCtrl LoopControl
 }
 
-/* func Interpreter(jffy Jffy) ExprVisitor {
-	var i ExprVisitor = &interpreter{
-		jffy,
-	}
-
-	return i
-} */
-
 func Interpreter(jffy Jffy) interpreter {
 	env := GlobalEnv()
+
+	env.Define("clock", &Clock{})
 
 	l := LoopControl{
 		false,
@@ -41,6 +36,7 @@ func Interpreter(jffy Jffy) interpreter {
 
 	return interpreter{
 		jffy,
+		env,
 		env,
 		l,
 	}
@@ -75,9 +71,6 @@ func (in *interpreter) Interpret(stmts []IStmt, jffy Jffy) {
 		in.execute(s)
 	}
 
-	// value := in.evaluate(expr)
-
-	// fmt.Printf("%s\n", stringify(value))
 }
 
 func (in *interpreter) VisitForBinaryExpr(b *Binary) any {
@@ -140,6 +133,38 @@ func (in *interpreter) VisitForBinaryExpr(b *Binary) any {
 	return nil
 }
 
+func (in *interpreter) VisitForLambdaExpr(l *Lambda) any {
+	return NewAnonymousFunction(l, in.env)
+}
+
+func (in *interpreter) VisitForCallExpr(c *Call) any {
+	callee := in.evaluate(c.Callee)
+
+	args := []any{}
+
+	for _, arg := range c.Arguments {
+		args = append(args, in.evaluate(arg))
+	}
+
+	fun, isCallee := callee.(ICallable)
+	if !isCallee {
+		in.handleError(c.Paren, "Can only call functions and classes.")
+	}
+
+	if len(args) != fun.Arity() {
+		in.handleError(
+			c.Paren,
+			fmt.Sprintf(
+				"Expected %d arguments but got %d.",
+				fun.Arity(),
+				len(args),
+			),
+		)
+	}
+
+	return fun.Call(in, args)
+}
+
 func (in *interpreter) VisitForGroupingExpr(g *Grouping) any {
 	return in.evaluate(g.Expression)
 }
@@ -193,15 +218,17 @@ func (in *interpreter) evaluate(expr IExpr) any {
 	return expr.Accept(in)
 }
 
-func (in *interpreter) execute(stmt IStmt) {
+func (in *interpreter) execute(stmt IStmt) any {
 	if !in.loopCtrl.doContinue {
 		stmt.Accept(in)
 	} else {
 		in.loopCtrl.doContinue = false
 	}
+
+	return nil
 }
 
-func (in *interpreter) executeBlock(statements []IStmt, env Environment) {
+func (in *interpreter) executeBlock(statements []IStmt, env Environment) any {
 	prev := in.env
 
 	// Make sure env is reset at the end, even if something panics
@@ -213,19 +240,35 @@ func (in *interpreter) executeBlock(statements []IStmt, env Environment) {
 
 	for _, s := range statements {
 		in.execute(s)
+
+		if in.env.returnVal != nil {
+			rVal := in.env.returnVal
+			in.env.returnVal = nil
+			return rVal
+		}
 	}
-
-}
-
-func (in *interpreter) VisitForBlockStmt(stmt *Block) any {
-	env := LocalEnv(in.env)
-	in.executeBlock(stmt.Statements, env)
 
 	return nil
 }
 
-func (in *interpreter) VisitForStmtExpressionStmt(stmt *StmtExpression) any {
+func (in *interpreter) VisitForBlockStmt(stmt *Block) any {
+	env := LocalEnv(in.env)
+	val := in.executeBlock(stmt.Statements, env)
+
+	in.env.returnVal = val
+
+	return nil
+}
+
+func (in *interpreter) VisitForExpressionStmt(stmt *Expression) any {
 	in.evaluate(stmt.Expression)
+
+	return nil
+}
+
+func (in *interpreter) VisitForFunctionStmt(stmt *Function) any {
+	fn := NewFunction(stmt, in.env)
+	in.env.Define(stmt.Name.Lexeme(), fn)
 
 	return nil
 }
@@ -240,9 +283,20 @@ func (in *interpreter) VisitForIfStmt(stmt *If) any {
 	return nil
 }
 
-func (in *interpreter) VisitForStmtPrintStmt(stmt *StmtPrint) any {
+func (in *interpreter) VisitForPrintStmt(stmt *Print) any {
 	val := in.evaluate(stmt.Expression)
 	fmt.Println(stringify(val))
+
+	return nil
+}
+
+func (in *interpreter) VisitForReturnStmt(stmt *Return) any {
+	if stmt.Value != nil {
+		val := in.evaluate(stmt.Value)
+		if val != nil {
+			in.env.returnVal = val
+		}
+	}
 
 	return nil
 }
@@ -390,7 +444,6 @@ func (in *interpreter) checkStringOperands(operator IToken, left any, right any)
 		return false, true
 	}
 
-	// in.handleError(operator, "Operands must be strings.")
 	return false, false
 }
 

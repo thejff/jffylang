@@ -45,6 +45,14 @@ func (a *AstPrinter) VisitForLogicalExpr(v *Logical) any {
 	return nil
 }
 
+func (a *AstPrinter) VisitForCallExpr(v *Call) any {
+	return nil
+}
+
+func (a *AstPrinter) VisitForLambdaExpr(l *Lambda) any {
+	return nil
+}
+
 func (a *AstPrinter) VisitForUnaryExpr(u *Unary) any {
 	return a.parenthesize(u.Operator.Lexeme(), u.Right)
 }

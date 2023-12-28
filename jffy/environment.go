@@ -5,6 +5,7 @@ import "fmt"
 type Environment struct {
 	values    map[string]any
 	enclosing *Environment
+	returnVal any
 }
 
 func GlobalEnv() Environment {
@@ -20,8 +21,6 @@ func LocalEnv(enclosing Environment) Environment {
 		enclosing: &enclosing,
 	}
 }
-
-// var a = "ga"; var b = "gb"; var c = "gc"; { var a = "oa"; var b = "ob"; { var a = "ia"; print a; print b; print c; } print a; print b; print c; }
 
 func (e *Environment) Define(name string, value any) {
 	e.values[name] = value
