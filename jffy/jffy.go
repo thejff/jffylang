@@ -126,6 +126,15 @@ func (j *jffy) run(source string) error {
 	stmts := parser.Parse()
 
 	if j.hadError {
+		fmt.Println("Parser error")
+		return nil
+	}
+
+	resolver := Resolver(j.interp)
+	resolver.resolve(stmts)
+
+	if j.hadError {
+		fmt.Println("Resolver error")
 		return nil
 	}
 

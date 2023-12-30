@@ -1,6 +1,7 @@
 package jffy
 
 import (
+	"crypto/sha256"
 	"fmt"
 )
 
@@ -114,8 +115,11 @@ func (p *parser) statement() IStmt {
 	}
 
 	if p.match(LEFT_BRACE) {
+		block := p.block()
+		uuid := getIdentifier(block)
 		return &Block{
-			p.block(),
+			block,
+			uuid,
 		}
 	}
 
@@ -167,14 +171,18 @@ func (p *parser) forStatement() IStmt {
 	}
 
 	if condition == nil {
+		uuid := getIdentifier(true)
 		condition = &Literal{
 			true,
+			uuid,
 		}
 	}
 
+	uuid := getIdentifier(condition, body)
 	body = &While{
 		condition,
 		body,
+		uuid,
 	}
 
 	if initialiser != nil {
@@ -208,10 +216,12 @@ func (p *parser) ifStatement() IStmt {
 		elseBranch = p.statement()
 	}
 
+	uuid := getIdentifier(condition, thenBranch, elseBranch)
 	return &If{
 		condition,
 		thenBranch,
 		elseBranch,
+		uuid,
 	}
 }
 
@@ -219,8 +229,10 @@ func (p *parser) printStatement() IStmt {
 	val := p.expression()
 	p.consume(SEMICOLON, "Expect \";\" after value.")
 
+	uuid := getIdentifier(val)
 	return &Print{
 		val,
+		uuid,
 	}
 }
 
@@ -234,9 +246,11 @@ func (p *parser) returnStatement() IStmt {
 	}
 
 	p.consume(SEMICOLON, "Expect \";\" after return value.")
+	uuid := getIdentifier(keyword, val)
 	return &Return{
 		keyword,
 		val,
+		uuid,
 	}
 }
 
@@ -250,9 +264,11 @@ func (p *parser) varDeclaration() IStmt {
 
 	p.consume(SEMICOLON, "Expect \";\" after a variable declaration.")
 
+	uuid := getIdentifier(name, initialiser)
 	return &Var{
 		name,
 		initialiser,
+		uuid,
 	}
 }
 
@@ -266,9 +282,11 @@ func (p *parser) whileStatement() IStmt {
 
 	body := p.statement()
 
+	uuid := getIdentifier(condition, body)
 	return &While{
 		condition,
 		body,
+		uuid,
 	}
 }
 
@@ -296,8 +314,10 @@ func (p *parser) expressionStatement() IStmt {
 	expr := p.expression()
 	p.consume(SEMICOLON, "Expect \";\" after expression.")
 
+	uuid := getIdentifier(expr)
 	return &Expression{
 		expr,
+		uuid,
 	}
 }
 
@@ -329,10 +349,12 @@ func (p *parser) function(kind string) IStmt {
 
 	body := p.block()
 
+	uuid := getIdentifier(name, params, body)
 	return &Function{
 		name,
 		params,
 		body,
+		uuid,
 	}
 
 }
@@ -359,9 +381,12 @@ func (p *parser) assignment() IExpr {
 
 		if v, isVar := expr.(*Variable); isVar {
 			name := v.Name
+
+			uuid := getIdentifier(name, value)
 			return &Assign{
 				name,
 				value,
+				uuid,
 			}
 		}
 
@@ -370,6 +395,21 @@ func (p *parser) assignment() IExpr {
 
 	return expr
 
+}
+
+func getIdentifier(args ...any) string {
+	strToHash := ""
+
+	for _, a := range args {
+		strToHash += fmt.Sprintf("%p", &a)
+	}
+
+	h := sha256.New()
+	h.Write([]byte(strToHash))
+
+	bs := h.Sum(nil)
+
+	return fmt.Sprintf("%x", bs)
 }
 
 func (p *parser) finishLambda() IExpr {
@@ -392,10 +432,13 @@ func (p *parser) finishLambda() IExpr {
 	p.consume(LEFT_BRACE, "Expect \"{\" before anonymous body.")
 	body := p.block()
 
+	uuid := getIdentifier(paren, params, body)
+
 	return &Lambda{
 		paren,
 		params,
 		body,
+		uuid,
 	}
 }
 
@@ -414,10 +457,14 @@ func (p *parser) or() IExpr {
 	for p.match(OR) {
 		op := p.previous()
 		right := p.and()
+
+		uuid := getIdentifier(expr, op, right)
+
 		expr = &Logical{
 			expr,
 			op,
 			right,
+			uuid,
 		}
 	}
 
@@ -430,10 +477,12 @@ func (p *parser) and() IExpr {
 	for p.match(AND) {
 		op := p.previous()
 		right := p.equality()
+		uuid := getIdentifier(expr, op, right)
 		expr = &Logical{
 			expr,
 			op,
 			right,
+			uuid,
 		}
 	}
 
@@ -446,10 +495,12 @@ func (p *parser) equality() IExpr {
 	for p.match(BANG_EQUAL, EQUAL_EQUAL) {
 		operator := p.previous()
 		right := p.comparison()
+		uuid := getIdentifier(expr, operator, right)
 		expr = &Binary{
 			expr,
 			operator,
 			right,
+			uuid,
 		}
 
 	}
@@ -466,10 +517,12 @@ func (p *parser) comparison() IExpr {
 		operator := p.previous()
 		right := p.term()
 
+		uuid := getIdentifier(&expr, operator, right)
 		expr = &Binary{
 			expr,
 			operator,
 			right,
+			uuid,
 		}
 	}
 
@@ -483,10 +536,12 @@ func (p *parser) term() IExpr {
 		operator := p.previous()
 		right := p.factor()
 
+		uuid := getIdentifier(expr, operator, right)
 		expr = &Binary{
 			expr,
 			operator,
 			right,
+			uuid,
 		}
 	}
 
@@ -500,10 +555,12 @@ func (p *parser) factor() IExpr {
 		operator := p.previous()
 		right := p.unary()
 
+		uuid := getIdentifier(expr, operator, right)
 		expr = &Binary{
 			expr,
 			operator,
 			right,
+			uuid,
 		}
 	}
 
@@ -515,9 +572,11 @@ func (p *parser) unary() IExpr {
 		operator := p.previous()
 		right := p.unary()
 
+		uuid := getIdentifier(operator, right)
 		return &Unary{
 			operator,
 			right,
+			uuid,
 		}
 	}
 
@@ -541,10 +600,13 @@ func (p *parser) finishCall(callee IExpr) IExpr {
 
 	paren := p.consume(RIGHT_PAREN, "Expect \")\" after arguments.")
 
+	uuid := getIdentifier(callee, paren, args)
+
 	return &Call{
 		callee,
 		paren,
 		args,
+		uuid,
 	}
 }
 
@@ -564,37 +626,47 @@ func (p *parser) call() IExpr {
 
 func (p *parser) primary() IExpr {
 	if p.match(FALSE) {
+		uuid := getIdentifier(false)
 		return &Literal{
 			false,
+			uuid,
 		}
 	}
 
 	if p.match(TRUE) {
+		uuid := getIdentifier(true)
 		return &Literal{
 			true,
+			uuid,
 		}
 
 	}
 
 	if p.match(NIL) {
+		uuid := getIdentifier(nil)
 		return &Literal{
 			nil,
+			uuid,
 		}
 
 	}
 
 	if p.match(NUMBER, STRING) {
 		prev := p.previous()
+		uuid := getIdentifier(prev.Literal())
 		return &Literal{
 			prev.Literal(),
+			uuid,
 		}
 
 	}
 
 	if p.match(IDENTIFIER) {
 		prev := p.previous()
+		uuid := getIdentifier(prev)
 		return &Variable{
 			prev,
+			uuid,
 		}
 	}
 
@@ -602,8 +674,10 @@ func (p *parser) primary() IExpr {
 		expr := p.expression()
 
 		p.consume(RIGHT_PAREN, "Expect \")\" after expression.")
+		uuid := getIdentifier(expr)
 		return &Grouping{
 			expr,
+			uuid,
 		}
 	}
 

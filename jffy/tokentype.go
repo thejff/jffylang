@@ -3,54 +3,59 @@ package jffy
 type TokenType int
 
 const (
+	A TokenType = iota
+	B
+)
+
+const (
 	// Single char tokens
-	LEFT_PAREN  TokenType = 0
-	RIGHT_PAREN TokenType = 1
-	LEFT_BRACE  TokenType = 2
-	RIGHT_BRACE TokenType = 3
-	COMMA       TokenType = 4
-	DOT         TokenType = 5
-	MINUS       TokenType = 6
-	PLUS        TokenType = 7
-	SEMICOLON   TokenType = 8
-	SLASH       TokenType = 9
-	STAR        TokenType = 10
+	LEFT_PAREN TokenType = iota
+	RIGHT_PAREN
+	LEFT_BRACE
+	RIGHT_BRACE
+	COMMA
+	DOT
+	MINUS
+	PLUS
+	SEMICOLON
+	SLASH
+	STAR
 
 	// One/Two char tokens
-	BANG          TokenType = 11
-	BANG_EQUAL    TokenType = 12
-	EQUAL         TokenType = 13
-	EQUAL_EQUAL   TokenType = 14
-	GREATER       TokenType = 15
-	GREATER_EQUAL TokenType = 16
-	LESS          TokenType = 17
-	LESS_EQUAL    TokenType = 18
-	DOT_DOT       TokenType = 19
+	BANG
+	BANG_EQUAL
+	EQUAL
+	EQUAL_EQUAL
+	GREATER
+	GREATER_EQUAL
+	LESS
+	LESS_EQUAL
+	DOT_DOT
 
 	// Literals
-	IDENTIFIER TokenType = 20
-	STRING     TokenType = 21
-	NUMBER     TokenType = 22
+	IDENTIFIER
+	STRING
+	NUMBER
 
 	// Keywords
-	AND      TokenType = 23
-	CLASS    TokenType = 24
-	ELSE     TokenType = 25
-	FALSE    TokenType = 26
-	FUN      TokenType = 27
-	FOR      TokenType = 28
-	IF       TokenType = 29
-	NIL      TokenType = 30
-	OR       TokenType = 31
-	PRINT    TokenType = 32
-	RETURN   TokenType = 33
-	SUPER    TokenType = 34
-	THIS     TokenType = 35
-	TRUE     TokenType = 36
-	VAR      TokenType = 37
-	WHILE    TokenType = 38
-	BREAK    TokenType = 39
-	CONTINUE TokenType = 40
+	AND
+	CLASS
+	ELSE
+	FALSE
+	FUN
+	FOR
+	IF
+	NIL
+	OR
+	PRINT
+	RETURN
+	SUPER
+	THIS
+	TRUE
+	VAR
+	WHILE
+	BREAK
+	CONTINUE
 
-	EOF TokenType = 41
+	EOF
 )

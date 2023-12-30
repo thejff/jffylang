@@ -17,10 +17,16 @@ type runtimeError struct {
 	msg      string
 }
 
+type dist struct {
+	distance int
+	set      bool
+}
+
 type interpreter struct {
 	jffy     Jffy
 	env      Environment
 	globals  Environment
+	locals   map[string]dist
 	loopCtrl LoopControl
 }
 
@@ -34,11 +40,14 @@ func Interpreter(jffy Jffy) interpreter {
 		false,
 	}
 
+	locals := make(map[string]dist)
+
 	return interpreter{
-		jffy,
-		env,
-		env,
-		l,
+		jffy:     jffy,
+		env:      env,
+		globals:  env,
+		locals:   locals,
+		loopCtrl: l,
 	}
 
 }
@@ -51,9 +60,9 @@ func (in *interpreter) Interpret(stmts []IStmt, jffy Jffy) {
 		if r := recover(); r != nil {
 			resp, ok := r.(runtimeError)
 			if ok {
-				fmt.Printf("OP type: %s\n",
+				/* fmt.Printf("OP type: %s\n",
 					resp.msg,
-				)
+				) */
 				in.jffy.RuntimeError(resp.operator, resp.msg)
 			} else {
 				err, ok := r.(error)
@@ -228,6 +237,15 @@ func (in *interpreter) execute(stmt IStmt) any {
 	return nil
 }
 
+func (in *interpreter) resolve(expr IExpr, depth int) {
+	d := dist{
+		distance: depth,
+		set:      true,
+	}
+
+	in.locals[expr.GetUUID()] = d
+}
+
 func (in *interpreter) executeBlock(statements []IStmt, env Environment) any {
 	prev := in.env
 
@@ -340,13 +358,30 @@ func (in *interpreter) VisitForContinueStmt(stmt *Continue) any {
 func (in *interpreter) VisitForAssignExpr(expr *Assign) any {
 
 	value := in.evaluate(expr.Value)
-	in.env.Assign(expr.Name, value)
+
+	d := in.locals[expr.GetUUID()]
+
+	if d.set {
+		in.env.AssignAt(d.distance, expr.Name, value)
+	} else {
+		in.globals.Assign(expr.Name, value)
+	}
 
 	return value
 }
 
 func (in *interpreter) VisitForVariableExpr(expr *Variable) any {
-	return in.env.Get(expr.Name)
+	return in.lookUpVariable(expr.Name, expr)
+}
+
+func (in *interpreter) lookUpVariable(name IToken, expr IExpr) any {
+	d := in.locals[expr.GetUUID()]
+
+	if d.set {
+		return in.env.GetAt(d.distance, name.Lexeme())
+	}
+
+	return in.globals.Get(name)
 }
 
 func isTruthy(obj any) bool {

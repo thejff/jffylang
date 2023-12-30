@@ -151,6 +151,7 @@ func defineAst(outDir string, fileName string, baseName string, types []Types) e
 	lw.writeLine("")
 	lw.writeLine(fmt.Sprintf("type I%s interface {", baseName))
 	lw.writeLine(fmt.Sprintf("  Accept(%sVisitor) any", baseName))
+	lw.writeLine("  GetUUID() string")
 	lw.writeLine("}")
 	lw.writeLine("")
 
@@ -185,6 +186,8 @@ func defineStruct(lw lineWriter, name string, fields []string, baseName string) 
 		)
 	}
 
+	lw.writeLine("  uuid string")
+
 	lw.writeLine("}")
 	lw.writeLine("")
 
@@ -208,6 +211,24 @@ func defineBaseFunc(lw lineWriter, structName string, baseName string) {
 			"  return param.VisitFor%s%s(%s)",
 			structName,
 			baseName,
+			firstChar,
+		),
+	)
+
+	lw.writeLine("}")
+	lw.writeLine("")
+
+	lw.writeLine(
+		fmt.Sprintf(
+			"func (%s *%s) GetUUID() string {",
+			firstChar,
+			structName,
+		),
+	)
+
+	lw.writeLine(
+		fmt.Sprintf(
+			"  return %s.uuid",
 			firstChar,
 		),
 	)
