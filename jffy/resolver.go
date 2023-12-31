@@ -1,6 +1,8 @@
 package jffy
 
 import (
+	"fmt"
+
 	"github.com/thejff/jffylang/stack"
 )
 
@@ -20,15 +22,21 @@ const (
 	FORLOOP
 )
 
+type varState struct {
+	token   IToken
+	defined bool
+	used    bool
+}
+
 type resolver struct {
 	in       interpreter
-	scopes   stack.Stack[map[string]bool]
+	scopes   stack.Stack[map[string]varState]
 	currFunc FunctionType
 	currLoop LoopType
 }
 
 func Resolver(in interpreter) *resolver {
-	scopes := stack.Stack[map[string]bool]{}
+	scopes := stack.Stack[map[string]varState]{}
 
 	return &resolver{
 		in,
@@ -61,15 +69,22 @@ func (r *resolver) VisitForVarStmt(stmt *Var) any {
 }
 
 func (r *resolver) VisitForVariableExpr(expr *Variable) any {
-	scope, ok := r.scopes.Peek()
+	scope, ok := r.scopes.Pop()
 	// if local scope isn't empty, and the variable exists in this scope but is not initialised
 
 	notEmpty := ok
 	hasEntry := mapHasKey(expr.Name.Lexeme(), scope)
-	isDefined := scope[expr.Name.Lexeme()]
+	state := scope[expr.Name.Lexeme()]
+	isDefined := state.defined
 
 	if notEmpty && hasEntry && !isDefined {
 		r.in.jffy.Error(expr.Name, "Can't read local variable in its own initialiser.")
+	}
+
+	if ok {
+		state.used = true
+		scope[expr.Name.Lexeme()] = state
+		r.scopes.Push(scope)
 	}
 
 	r.resolveLocal(expr, expr.Name)
@@ -253,12 +268,23 @@ func (r *resolver) resolveLambda(lambda *Lambda, fnType FunctionType) {
 }
 
 func (r *resolver) beginScope() {
-	scopeMap := make(map[string]bool)
+	scopeMap := make(map[string]varState)
 	r.scopes.Push(scopeMap)
 }
 
 func (r *resolver) endScope() {
-	r.scopes.Pop()
+	scope, ok := r.scopes.Pop()
+	if !ok {
+		// No local variables
+		return
+	}
+
+	for k, state := range scope {
+		if !state.used {
+			r.in.jffy.Error(state.token, fmt.Sprintf("Unused variable \"%s\" in scope.", k))
+		}
+
+	}
 }
 
 func (r *resolver) declare(name IToken) {
@@ -272,7 +298,13 @@ func (r *resolver) declare(name IToken) {
 		r.in.jffy.Error(name, "There is already a variable with this name in this scope.")
 	}
 
-	scope[name.Lexeme()] = false
+	state := varState{
+		token:   name,
+		defined: false,
+		used:    false,
+	}
+
+	scope[name.Lexeme()] = state
 
 	r.scopes.Push(scope)
 }
@@ -283,7 +315,10 @@ func (r *resolver) define(name IToken) {
 		return
 	}
 
-	scope[name.Lexeme()] = true
+	state := scope[name.Lexeme()]
+	state.defined = true
+
+	scope[name.Lexeme()] = state
 	r.scopes.Push(scope)
 }
 
@@ -300,7 +335,7 @@ func (r *resolver) resolveLocal(expr IExpr, name IToken) {
 	}
 }
 
-func mapHasKey(key string, m map[string]bool) bool {
+func mapHasKey(key string, m map[string]varState) bool {
 	for k := range m {
 		if k == key {
 			return true

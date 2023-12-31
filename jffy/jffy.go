@@ -100,8 +100,10 @@ func (j *jffy) Error(token IToken, msg string) {
 
 	if token.Type() == EOF {
 		jerror.Error(token.Line(), fmt.Sprintf("at end %s", msg))
-	} else {
+	} else if token != nil {
 		jerror.Error(token.Line(), fmt.Sprintf("at \"%s\", %s", token.Lexeme(), msg))
+	} else {
+		jerror.Error(-1, msg)
 	}
 
 	j.hadError = true
