@@ -40,7 +40,7 @@ func (f *JFFFunction) Call(i *interpreter, args []any) any {
 	env := LocalEnv(f.closure)
 
 	for i := 0; i < len(f.declaration.Params); i++ {
-		env.Define(f.declaration.Params[i].Lexeme(), args[i])
+		env.Define(args[i])
 	}
 
 	return i.executeBlock(f.declaration.Body, env)
@@ -69,7 +69,7 @@ func (f *AnonJFFFunction) Call(i *interpreter, args []any) any {
 	env := LocalEnv(f.closure)
 
 	for i := 0; i < len(f.declaration.Params); i++ {
-		env.Define(f.declaration.Params[i].Lexeme(), args[i])
+		env.Define(args[i])
 	}
 
 	return i.executeBlock(f.declaration.Body, env)

@@ -1,8 +1,6 @@
 package jffy
 
 import (
-	"fmt"
-
 	"github.com/thejff/jffylang/stack"
 )
 
@@ -30,13 +28,14 @@ type varState struct {
 
 type resolver struct {
 	in       interpreter
-	scopes   stack.Stack[map[string]varState]
+	scopes   stack.Stack[[]varState]
 	currFunc FunctionType
 	currLoop LoopType
 }
 
 func Resolver(in interpreter) *resolver {
-	scopes := stack.Stack[map[string]varState]{}
+	scopes := stack.Stack[[]varState]{}
+	scopes.Push([]varState{})
 
 	return &resolver{
 		in,
@@ -73,17 +72,25 @@ func (r *resolver) VisitForVariableExpr(expr *Variable) any {
 	// if local scope isn't empty, and the variable exists in this scope but is not initialised
 
 	notEmpty := ok
-	hasEntry := mapHasKey(expr.Name.Lexeme(), scope)
-	state := scope[expr.Name.Lexeme()]
-	isDefined := state.defined
+	index := getVarIndex(expr.Name, scope)
+	hasEntry := index != -1
+
+	isDefined := false
+
+	if hasEntry {
+		isDefined = scope[index].defined
+	}
+
+	/* if !isDefined {
+		r.in.jffy.Error(expr.Name, "Variable not defined.")
+	} */
 
 	if notEmpty && hasEntry && !isDefined {
 		r.in.jffy.Error(expr.Name, "Can't read local variable in its own initialiser.")
 	}
 
-	if ok {
-		state.used = true
-		scope[expr.Name.Lexeme()] = state
+	if ok && hasEntry {
+		scope[index].used = true
 		r.scopes.Push(scope)
 	}
 
@@ -268,7 +275,7 @@ func (r *resolver) resolveLambda(lambda *Lambda, fnType FunctionType) {
 }
 
 func (r *resolver) beginScope() {
-	scopeMap := make(map[string]varState)
+	scopeMap := []varState{}
 	r.scopes.Push(scopeMap)
 }
 
@@ -279,23 +286,25 @@ func (r *resolver) endScope() {
 		return
 	}
 
-	for k, state := range scope {
+	for _, state := range scope {
 		if !state.used {
-			r.in.jffy.Error(state.token, fmt.Sprintf("Unused variable \"%s\" in scope.", k))
+			r.in.jffy.Error(state.token, "Unused variable.")
 		}
 
 	}
 }
 
-func (r *resolver) declare(name IToken) {
+func (r *resolver) declare(name IToken) int {
 	scope, ok := r.scopes.Pop()
 	// Not ok if stack empty
 	if !ok {
-		return
+		return -1
 	}
 
-	if mapHasKey(name.Lexeme(), scope) {
-		r.in.jffy.Error(name, "There is already a variable with this name in this scope.")
+	for _, v := range scope {
+		if v.token.Lexeme() == name.Lexeme() {
+			r.in.jffy.Error(name, "There is already a variable with this name in this scope.")
+		}
 	}
 
 	state := varState{
@@ -304,9 +313,11 @@ func (r *resolver) declare(name IToken) {
 		used:    false,
 	}
 
-	scope[name.Lexeme()] = state
+	scope = append(scope, state)
 
 	r.scopes.Push(scope)
+
+	return len(scope) - 1
 }
 
 func (r *resolver) define(name IToken) {
@@ -315,10 +326,12 @@ func (r *resolver) define(name IToken) {
 		return
 	}
 
-	state := scope[name.Lexeme()]
+	index := getVarIndex(name, scope)
+
+	state := scope[index]
 	state.defined = true
 
-	scope[name.Lexeme()] = state
+	scope[index] = state
 	r.scopes.Push(scope)
 }
 
@@ -326,18 +339,31 @@ func (r *resolver) resolveLocal(expr IExpr, name IToken) {
 	for i := r.scopes.Size() - 1; i >= 0; i-- {
 		m, ok := r.scopes.Get(i)
 		if ok {
-			if mapHasKey(name.Lexeme(), m) {
+			index := getVarIndex(name, m)
+			if index != -1 {
 				depth := r.scopes.Size() - 1 - i
-				r.in.resolve(expr, depth)
+
+				r.in.resolve(expr, depth, index)
 				return
 			}
 		}
 	}
 }
 
-func mapHasKey(key string, m map[string]varState) bool {
-	for k := range m {
-		if k == key {
+func getVarIndex(name IToken, scope []varState) int {
+
+	for i, v := range scope {
+		if name.Lexeme() == v.token.Lexeme() {
+			return i
+		}
+	}
+
+	return -1
+}
+
+func varInScope(name IToken, scope []varState) bool {
+	for _, v := range scope {
+		if v.token.Lexeme() == name.Lexeme() {
 			return true
 		}
 	}

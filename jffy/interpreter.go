@@ -17,37 +17,49 @@ type runtimeError struct {
 	msg      string
 }
 
-type dist struct {
+type varData struct {
 	distance int
 	set      bool
+	index    int
 }
 
 type interpreter struct {
 	jffy     Jffy
 	env      Environment
 	globals  Environment
-	locals   map[string]dist
+	locals   map[string]varData
 	loopCtrl LoopControl
 }
 
 func Interpreter(jffy Jffy) interpreter {
 	env := GlobalEnv()
 
-	env.Define("clock", &Clock{})
-
 	l := LoopControl{
 		false,
 		false,
 	}
 
-	locals := make(map[string]dist)
+	locals := make(map[string]varData)
 
-	return interpreter{
+	i := interpreter{
 		jffy:     jffy,
 		env:      env,
 		globals:  env,
 		locals:   locals,
 		loopCtrl: l,
+	}
+
+	i.defineGlobalFuncs()
+
+	return i
+}
+
+func (in *interpreter) defineGlobalFuncs() {
+	index := in.globals.Define(&Clock{})
+	in.locals["clock"] = varData{
+		0,
+		true,
+		index,
 	}
 
 }
@@ -237,10 +249,11 @@ func (in *interpreter) execute(stmt IStmt) any {
 	return nil
 }
 
-func (in *interpreter) resolve(expr IExpr, depth int) {
-	d := dist{
+func (in *interpreter) resolve(expr IExpr, depth int, index int) {
+	d := varData{
 		distance: depth,
 		set:      true,
+		index:    index,
 	}
 
 	in.locals[expr.GetUUID()] = d
@@ -286,7 +299,7 @@ func (in *interpreter) VisitForExpressionStmt(stmt *Expression) any {
 
 func (in *interpreter) VisitForFunctionStmt(stmt *Function) any {
 	fn := NewFunction(stmt, in.env)
-	in.env.Define(stmt.Name.Lexeme(), fn)
+	in.env.Define(fn)
 
 	return nil
 }
@@ -326,7 +339,7 @@ func (in *interpreter) VisitForVarStmt(stmt *Var) any {
 		val = in.evaluate(stmt.Initialiser)
 	}
 
-	in.env.Define(stmt.Name.Lexeme(), val)
+	in.env.Define(val)
 
 	return nil
 }
@@ -362,9 +375,9 @@ func (in *interpreter) VisitForAssignExpr(expr *Assign) any {
 	d := in.locals[expr.GetUUID()]
 
 	if d.set {
-		in.env.AssignAt(d.distance, expr.Name, value)
+		in.env.AssignAt(d.distance, d.index, value)
 	} else {
-		in.globals.Assign(expr.Name, value)
+		in.globals.Assign(d.index, expr.Name, value)
 	}
 
 	return value
@@ -378,10 +391,10 @@ func (in *interpreter) lookUpVariable(name IToken, expr IExpr) any {
 	d := in.locals[expr.GetUUID()]
 
 	if d.set {
-		return in.env.GetAt(d.distance, name.Lexeme())
+		return in.env.GetAt(d.distance, d.index)
 	}
 
-	return in.globals.Get(name)
+	return in.globals.Get(d.index, name)
 }
 
 func isTruthy(obj any) bool {

@@ -3,27 +3,31 @@ package jffy
 import "fmt"
 
 type Environment struct {
-	values    map[string]any
+	// values    map[string]any
+	values    []any
 	enclosing *Environment
 	returnVal any
 }
 
 func GlobalEnv() Environment {
 	return Environment{
-		values:    make(map[string]any),
+		// values:    make(map[string]any),
+		values:    []any{},
 		enclosing: nil,
 	}
 }
 
 func LocalEnv(enclosing Environment) Environment {
 	return Environment{
-		values:    make(map[string]any),
+		values:    []any{},
 		enclosing: &enclosing,
 	}
 }
 
-func (e *Environment) Define(name string, value any) {
-	e.values[name] = value
+func (e *Environment) Define(value any) int {
+	// e.values[name] = value
+	e.values = append(e.values, value)
+	return len(e.values) - 1
 }
 
 func (e *Environment) ancestor(distance int) *Environment {
@@ -36,54 +40,52 @@ func (e *Environment) ancestor(distance int) *Environment {
 	return env
 }
 
-func (e *Environment) GetAt(distance int, name string) any {
+func (e *Environment) GetAt(distance int, index int) any {
 	a := e.ancestor(distance)
-	return a.values[name]
+	return a.values[index]
 }
 
-func (e *Environment) AssignAt(distance int, name IToken, value any) {
-	e.ancestor(distance).values[name.Lexeme()] = value
+func (e *Environment) AssignAt(distance int, index int, value any) {
+	e.ancestor(distance).values[index] = value
 }
 
-func (e *Environment) Get(name IToken) any {
-	varName := name.Lexeme()
-	val, ok := e.values[varName]
+func (e *Environment) Get(index int, name IToken) any {
 
-	// Found it, send it back
-	if ok {
-		if val != nil {
-			return val
+	fmt.Printf("This env: \n%v\n\n", e.values)
+
+	if len(e.values) == 0 {
+		// Maybe our parent has it?
+		if e.enclosing != nil {
+			return e.enclosing.Get(index, name)
 		}
 
+		// Nobody has it!
 		panic(runtimeError{
 			operator: name,
-			msg:      fmt.Sprintf("Variable declared but not assigned before use \"%s\".", name.Lexeme()),
+			msg:      fmt.Sprintf("Undefined variable \"%s\".", name.Lexeme()),
 		})
 	}
 
-	// Maybe our parent has it?
-	if e.enclosing != nil {
-		return e.enclosing.Get(name)
+	val := e.values[index]
+
+	// Found it, send it back
+	if val != nil {
+		return val
 	}
 
-	// Nobody has it!
 	panic(runtimeError{
 		operator: name,
-		msg:      fmt.Sprintf("Undefined variable \"%s\".", name.Lexeme()),
+		msg:      fmt.Sprintf("Variable declared but not assigned before use \"%s\".", name.Lexeme()),
 	})
+
 }
 
-func (e *Environment) Assign(name IToken, value any) {
+func (e *Environment) Assign(index int, name IToken, value any) {
 
-	for k := range e.values {
-		if k == name.Lexeme() {
-			e.values[name.Lexeme()] = value
-			return
-		}
-	}
+	e.values[index] = value
 
 	if e.enclosing != nil {
-		e.enclosing.Assign(name, value)
+		e.enclosing.Assign(index, name, value)
 		return
 	}
 
